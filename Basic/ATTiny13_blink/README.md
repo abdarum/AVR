@@ -1,6 +1,6 @@
-#Blink ATTINY13A
+# Blink ATTINY13A
 
-##Pinout:
+## Pinout:
 
 PB4 - LED out
 
