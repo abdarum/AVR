@@ -9,7 +9,7 @@
 |
 ================================================*/
 #ifndef F_CPU
-#define F_CPU 8000000UL // or whatever may be your frequency
+#define F_CPU 1200000UL // or whatever may be your frequency
 #endif
 
 #define LED PB4
