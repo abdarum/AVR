@@ -17,7 +17,7 @@ int main(void)
 	DDRB  &= ~KEY_PIN;          // set KEY_PIN like input 
 	PORTB |=  KEY_PIN;          // pull-up to Vcc
 	TCCR0A |= (1 << WGM01) | (1 << WGM00); // turn on FastPWM mode
-	TCCR0A |= (1<<COM0A1); //Set OC0A at TOP and clear after compare
+	TCCR0A |= (1<<COM0A1)|(1<<COM0A0); //Clear OC0A at TOP and set after compare
 
 	//TCCR0B = (1<<CS00); //prescaler 1
 	TCCR0B = (1<<CS01); //prescaler 8
@@ -28,7 +28,7 @@ int main(void)
 	uint8_t i = 0;                      
 	
 
-	OCR0A = level[i];               // set PWM duty 
+	OCR0A = 255 - level[i];               // set PWM duty 
 
 	while(1)
 	{
@@ -38,7 +38,7 @@ int main(void)
 			i++;
 			if( i >= 4) i = 0;
 
-			OCR0A = level[i]; 
+			OCR0A = 255 - level[i]; 
 			_delay_ms(200);
 		}
 	}
