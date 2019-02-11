@@ -1,6 +1,6 @@
-# PWM on LED following ADC on PB2, ATTINY13A
+# PWM on LED fade in and fade out with ADC, ATTINY13A
 
-PWM with changing duty of PWM following voltage of pin PB2 
+PWM with changing duty of PWM to fade in and fade out. Maximum PWM duty following voltage of pin PB2 
 
 ## Pinout:
 
