@@ -2,14 +2,22 @@
 #define F_CPU 1200000UL // or whatever may be your frequency
 #endif
 
+// Ports settigs
 #define LED (1<<PB0)
 #define POT (1<<PB2)
 
 #define KEY_PIN (1<<PB3)          
 #define KEY_DOWN !(PINB & KEY_PIN) 
 
+// Fade mode settings
+#define FADE_MODE_FIXED_STEP 0
 #define FADE_STEP_TIME 8
+
+#define FADE_MODE_FIXED_FADE_TIME 1
 #define FADE_WHOLE_TIME 2000
+
+#define FADE_MODE FADE_MODE_FIXED_STEP
+
  
 #include <avr/io.h>                    // adding header files
 #include <util/delay.h>                // for _delay_ms()
@@ -57,11 +65,15 @@ void fade_in(uint8_t final_value)
 {
 	uint16_t fade_step_time = FADE_WHOLE_TIME/(final_value - 
 			current_pwm_duty); 
-	uint16_t i=0;
 	while(current_pwm_duty<final_value)
 	{
-		//_delay_ms(FADE_STEP_TIME);	
-		for(i=0;i<fade_step_time;i++)	_delay_ms(1);
+		if(FADE_MODE == FADE_MODE_FIXED_STEP)
+			_delay_ms(FADE_STEP_TIME);	
+		if(FADE_MODE == FADE_MODE_FIXED_FADE_TIME)
+		{
+			uint16_t i=0;
+			for(i=0;i<fade_step_time;i++)	_delay_ms(1);
+		}
 		current_pwm_duty++;
 		pwm_update();
 	}
@@ -70,11 +82,15 @@ void fade_in(uint8_t final_value)
 void fade_out(void)
 {
 	uint16_t fade_step_time = FADE_WHOLE_TIME/current_pwm_duty; 
-	uint16_t i=0;
 	while(current_pwm_duty>0)
 	{
-		//_delay_ms(FADE_STEP_TIME);		
-		for(i=0;i<fade_step_time;i++)	_delay_ms(1);
+		if(FADE_MODE == FADE_MODE_FIXED_STEP)
+			_delay_ms(FADE_STEP_TIME);		
+		if(FADE_MODE == FADE_MODE_FIXED_FADE_TIME)
+		{
+			uint16_t i=0;
+			for(i=0;i<fade_step_time;i++)	_delay_ms(1);
+		}
 		current_pwm_duty--;
 		pwm_update();
 	}
