@@ -8,4 +8,4 @@ filename="`echo $filename | cut -d '.' -f2-`"
 avr-gcc -g -Os -mmcu="$MCU" -c "$filename".c
 avr-gcc -g -mmcu="$MCU" -o "$filename".elf "$filename".o
 avr-objcopy -j .text -j .data -O ihex "$filename".elf "$filename".hex
-avr-size --format=avr --mcu="$MCU" "$filename".elf
+avr-size "$filename".elf
