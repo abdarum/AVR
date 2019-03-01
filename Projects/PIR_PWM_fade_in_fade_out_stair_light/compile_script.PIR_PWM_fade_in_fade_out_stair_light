@@ -1,0 +1,16 @@
+MCU=attiny13
+filename_base=compile_script.
+filename=$0
+filename="`echo $filename | grep -o -E "$filename_base*"`"
+filename="`echo $filename | cut -d '.' -f2-`"
+
+errors=""
+errors="`(avr-gcc -g -Os -mmcu="$MCU" -c "$filename".c 2>&1)`"
+errors="$errors`(avr-gcc -g -mmcu="$MCU" -o "$filename".elf "$filename".o 2>&1)`"
+errors="$errors`(avr-objcopy -j .text -j .data -O ihex "$filename".elf "$filename".hex 2>&1)`"
+#avr-size --format=avr --mcu="$MCU" "$filename".elf
+if [ -z "$errors" ]; then
+	avr-size   "$filename".elf
+else
+	echo -e "$errors"
+fi
