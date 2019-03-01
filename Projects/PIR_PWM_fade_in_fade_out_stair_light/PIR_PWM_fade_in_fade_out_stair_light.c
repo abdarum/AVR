@@ -89,21 +89,19 @@ int main(void)
 
 
 
-	//pwm_set_duty(200);
+	//pwm_set_duty(100);  while(1){}
 
 	while(1)
 	{
-	
-		
 		if(current_status_of_pwm_cycle==PWM_MODE_TRIGGER)
 		{
 			PORTB |= RELAY;
 			full_cycle_of_pwm();
 			PORTB &= ~RELAY; 
 		}
-		
-
 	}
+
+
 }
 
 void interuppt_setup(void)
