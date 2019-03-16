@@ -226,7 +226,7 @@ void adc_setup(void)
 {
 	// Set the ADC input to PB2/ADC1
 	ADMUX |= (1 << MUX0) | (1 << MUX1);
-	ADMUX |= (1 << ADLAR);
+	//ADMUX |= (1 << ADLAR);
 
 	// Set the prescaler to clock/128 & enable ADC
 	ADCSRA |= (1 << ADPS1) | (1 << ADPS0);
