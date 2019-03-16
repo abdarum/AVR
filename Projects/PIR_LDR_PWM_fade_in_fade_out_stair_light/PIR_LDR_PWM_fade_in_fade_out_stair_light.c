@@ -13,6 +13,8 @@
 #define KEY_UP (PINB & KEY_PIN)
 
 // Fade mode settings
+#define DELAY_BEFORE_FADE_IN 500
+
 #define FADE_MODE_FIXED_STEP 0
 #define FADE_STEP_TIME 8
 
@@ -25,17 +27,18 @@
 
 #define FADE_MODE FADE_MODE_FIXED_FADE_TIME_STEP
 
-#define SUSTAIN_TIME 8000
-#define SUSTAIN_EXTENSION_TIME 2000
+#define SUSTAIN_TIME 12000
+#define SUSTAIN_EXTENSION_TIME 8000
 
-#define LDR_THRESHOLD 93
+// LDR values 59
+#define LDR_THRESHOLD 40
 // LDR_MODE: 1 - Greather or equal LDR turn on light
 // 	     0 - Lower or equal LDR turn on light
 #define LDR_MODE 0
 
 
 // PWM final level
-#define PWM_FINAL_VALUE 150
+#define PWM_FINAL_VALUE 100
 
 
 // Stages of working PWM
@@ -69,7 +72,7 @@ volatile uint8_t current_status_of_pwm_cycle = PWM_MODE_TURN_OFF;
 
 ISR(INT0_vect)
 {
-	_delay_ms(80);
+	_delay_ms(10);
 	if(KEY_UP)
 	{
 		if(current_status_of_pwm_cycle==PWM_MODE_TURN_OFF)
@@ -170,6 +173,7 @@ void fade_out(void)
 void full_cycle_of_pwm(void)
 {
 	current_status_of_pwm_cycle = PWM_MODE_FADE_IN;
+	_delay_ms(DELAY_BEFORE_FADE_IN);
 	fade_in(PWM_FINAL_VALUE);
 	current_status_of_pwm_cycle = PWM_MODE_TURN_ON;
 	main_counter = SUSTAIN_TIME;
