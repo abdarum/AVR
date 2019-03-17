@@ -48,10 +48,13 @@
 #define PWM_MODE_TURN_ON 3
 #define PWM_MODE_FADE_OUT 4
 
+#define TIME_OF_MEAN 15
+
  
 #include <avr/io.h>                    // adding header files
 #include <util/delay.h>                // for _delay_ms()
-#include <avr/interrupt.h>		// for interuppts
+#include <avr/interrupt.h>	       // for interuppts
+#include <avr/wdt.h>                   // for wathdog timer
  
 uint8_t push_button(void);    
 void pwm_setup(void);
@@ -64,11 +67,16 @@ void interuppt_setup(void);
 void fade_in(uint8_t);
 void fade_out(void);
 void full_cycle_of_pwm(void);
-uint8_t light_brghtness_comparator(void);
+uint8_t light_brghtness_comparator(uint16_t);
+void watchdog_and_mean_setup(void);
+void calculate_light_mean(void);
 
 volatile uint16_t main_counter = SUSTAIN_TIME;
 uint8_t current_pwm_duty = 0;
 volatile uint8_t current_status_of_pwm_cycle = PWM_MODE_TURN_OFF;
+volatile uint16_t light_values[2*TIME_OF_MEAN];
+volatile uint16_t mean_light_value = 0;
+volatile uint8_t light_values_idx = 0;
 
 ISR(INT0_vect)
 {
@@ -85,6 +93,14 @@ ISR(INT0_vect)
 	}
 }
 
+ISR(WDT_vect)
+{
+	light_values[light_values_idx] = adc_read();
+	if(light_values_idx<2*TIME_OF_MEAN)
+		light_values_idx++;
+	else
+		light_values_idx = 0;
+}
 
 int main(void)
 {
@@ -97,6 +113,7 @@ int main(void)
 	pwm_setup();
 	adc_setup();
 	interuppt_setup();
+	watchdog_and_mean_setup();
 	
 	pwm_set_duty(0);
 
@@ -108,7 +125,8 @@ int main(void)
 	{
 		if(current_status_of_pwm_cycle==PWM_MODE_TRIGGER)
 		{
-			if(light_brghtness_comparator())
+			calculate_light_mean();
+			if(light_brghtness_comparator(mean_light_value))
 			{
 				PORTB |= RELAY;
 				full_cycle_of_pwm();
@@ -120,6 +138,14 @@ int main(void)
 
 }
 
+void watchdog_and_mean_setup(void)
+{
+	int i;
+	wdt_enable(WDTO_500MS); // set prescaler to 0.5s and enable Watchdog Timer
+	WDTCR |= _BV(WDTIE); // enable Watchdog Timer interrupt
+	for(i=0;i<2*TIME_OF_MEAN;i++)
+		light_values[i] = 0;
+}
 void interuppt_setup(void)
 {
 	GIMSK |= (1<<INT0);
@@ -252,9 +278,8 @@ uint16_t adc_read (void)
 	return ADC;
 }
 
-uint8_t light_brghtness_comparator(void)
+uint8_t light_brghtness_comparator(uint16_t ldr_value)
 {
-	uint16_t ldr_value = adc_read();
 	if(LDR_MODE)
 	{
 		if(ldr_value >= LDR_THRESHOLD)
@@ -267,4 +292,18 @@ uint8_t light_brghtness_comparator(void)
 	}
 	return 0;
 
+}
+
+void calculate_light_mean(void)
+{
+	uint16_t tmp=0;
+	int i;
+	for(i=0;i<2*TIME_OF_MEAN;i++)
+	{
+		if(65535-tmp<light_values[i])
+			tmp = 65535;
+		else
+			tmp += light_values[i];
+	}
+	mean_light_value = tmp/(2*TIME_OF_MEAN);
 }
