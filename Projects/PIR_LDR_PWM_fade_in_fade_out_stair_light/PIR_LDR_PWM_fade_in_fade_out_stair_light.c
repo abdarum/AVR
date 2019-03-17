@@ -30,7 +30,7 @@
 #define SUSTAIN_TIME 12000
 #define SUSTAIN_EXTENSION_TIME 8000
 
-// LDR values 59
+// LDR values 59, 40
 #define LDR_THRESHOLD 40
 // LDR_MODE: 1 - Greather or equal LDR turn on light
 // 	     0 - Lower or equal LDR turn on light
@@ -48,7 +48,7 @@
 #define PWM_MODE_TURN_ON 3
 #define PWM_MODE_FADE_OUT 4
 
-#define TIME_OF_MEAN 15
+#define TIME_OF_MEAN 5
 
  
 #include <avr/io.h>                    // adding header files
@@ -100,6 +100,7 @@ ISR(WDT_vect)
 		light_values_idx++;
 	else
 		light_values_idx = 0;
+	MCUSR &= ~(1<<WDRF); // Disable reset of microcontroller
 }
 
 int main(void)
@@ -141,8 +142,11 @@ int main(void)
 void watchdog_and_mean_setup(void)
 {
 	int i;
-	wdt_enable(WDTO_500MS); // set prescaler to 0.5s and enable Watchdog Timer
-	WDTCR |= _BV(WDTIE); // enable Watchdog Timer interrupt
+	// set prescaler to 0.5s and enable Watchdog Timer
+	WDTCR =  (1<<WDTIE) | (1<<WDP0) | (1<<WDP2);
+	// disable reset of microcontroller
+	WDTCR &= ~(1<<WDE);
+	MCUSR &= ~(1<<WDRF);
 	for(i=0;i<2*TIME_OF_MEAN;i++)
 		light_values[i] = 0;
 }
