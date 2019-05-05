@@ -38,7 +38,7 @@
 
 
 // PWM final level
-#define PWM_FINAL_VALUE 100
+#define PWM_FINAL_VALUE 80
 
 
 // Stages of working PWM
