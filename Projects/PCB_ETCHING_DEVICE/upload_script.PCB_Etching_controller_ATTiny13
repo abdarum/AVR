@@ -1,0 +1,52 @@
+filename_base=upload_script.
+filename=$0
+filename="`echo $filename | grep -o -E "$filename_base*"`"
+filename="`echo $filename | cut -d '.' -f2- `"
+
+MCU=t13
+
+function disp_help {
+	echo "    Script: $0"
+	echo "Options:"
+	echo "-c - Check MCU"
+	echo "-f - Set fuses to default"
+	echo "-w - Flash program to MCU"
+	echo "-h - display help"
+}
+
+function check_mcu {
+	#Check MCU
+	avrdude -c usbasp -p $MCU -P usb  -F 
+
+} 
+
+function set_fuses_to_default {
+	#Set fuses to default
+	avrdude -c usbasp -p $MCU -P usb -U lfuse:w:0x6a:m -U hfuse:w:0xff:m
+}
+
+function flash_program {
+	#Flash program
+	avrdude -c usbasp -p $MCU -P usb -U flash:w:"$filename.hex" 
+}		
+
+if [ -z "$1" ] ; then
+	flash_program
+else
+	while getopts "cfwh" name; do
+		case "$name" in
+			c)
+				check_mcu
+				;;
+			f)
+				set_fuses_to_default
+				;;	
+			w)
+				flash_program
+				;;
+			h)
+				disp_help
+				;;
+		esac
+	done
+fi	
