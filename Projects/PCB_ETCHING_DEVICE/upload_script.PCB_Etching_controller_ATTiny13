@@ -10,19 +10,25 @@ function disp_help {
 	echo "Options:"
 	echo "-c - Check MCU"
 	echo "-f - Set fuses to default"
+	echo "-l - Set fuses to 128kHz"
 	echo "-w - Flash program to MCU"
 	echo "-h - display help"
 }
 
 function check_mcu {
 	#Check MCU
-	avrdude -c usbasp -p $MCU -P usb  -F 
+	avrdude -c usbasp -p $MCU -P usb  -F -B19200
 
 } 
 
 function set_fuses_to_default {
 	#Set fuses to default
-	avrdude -c usbasp -p $MCU -P usb -U lfuse:w:0x6a:m -U hfuse:w:0xff:m
+	avrdude -c usbasp -p $MCU -P usb -U lfuse:w:0x6a:m -U hfuse:w:0xff:m 
+}
+
+function set_fuses_to_low_speed {
+	#Set fuses to default
+	avrdude -c usbasp -p $MCU -P usb -U lfuse:w:0x7B:m -U hfuse:w:0xff:m
 }
 
 function flash_program {
@@ -33,13 +39,16 @@ function flash_program {
 if [ -z "$1" ] ; then
 	flash_program
 else
-	while getopts "cfwh" name; do
+	while getopts "cflwh" name; do
 		case "$name" in
 			c)
 				check_mcu
 				;;
 			f)
 				set_fuses_to_default
+				;;	
+			l)
+				set_fuses_to_low_speed
 				;;	
 			w)
 				flash_program

@@ -1,29 +1,40 @@
 #ifndef F_CPU
-#define F_CPU 1200000UL // or whatever may be your frequency
+#define F_CPU 128000UL // or whatever may be your frequency
 #endif
 
 // Ports settigs
 #define LED (1<<PB5)
 #define POT (1<<PB4)
 #define NTC (1<<PB3)
-#define HEATER_1 (1<<PB2)
+#define HEATER_1 (1<<PB0)
 #define HEATER_2 (1<<PB1)
-#define HEATER_3 (1<<PB0)
+#define HEATER_3 (1<<PB2)
+
+#define MIN_TEMP 30
+#define MAX_TEMP 59
+#define NUMBER_OF_TEMP_VALUES 30
+
+#define ADC_VAL_HYSTERESIS 3
+
+#define ERROR_NO_TERMISTOR_ADC_VALUE 900
 
  
 #include <avr/io.h>                    // adding header files
 #include <util/delay.h>                // for _delay_ms()
-#include <avr/interrupt.h>	       // for interuppts
-#include <avr/wdt.h>                   // for wathdog timer
  
-void pwm_setup(void);
-void pwm_set_duty(uint8_t);
-void pwm_update();
-uint8_t pwm_return_duty(void);
+//void pwm_setup(void);
+//void pwm_set_duty(uint8_t);
+//void pwm_update();
+//uint8_t pwm_return_duty(void);
 void adc_setup(void);
 uint16_t adc_read (void);
-void interuppt_setup(void);
-void watchdog_and_mean_setup(void);
+
+void turn_on_heater(void);
+void turn_off_heater(void);
+void select_potentiometer_adc_mux(void);
+void select_thermistor_adc_mux(void);
+uint8_t get_idx_of_temp(void);
+void check_temp_and_set_heater(void);
 
 // 1 degree step from 30 to 59
 uint16_t temp_values[] = {455, 445, 434, 423, 413, 403, 393, 383, 373, 
@@ -31,47 +42,15 @@ uint16_t temp_values[] = {455, 445, 434, 423, 413, 403, 393, 383, 373,
 293, 285, 277, 270, 262, 255, 248, 241, 
 234, 228, 221, 215, 209};
 
-
-/*
-ISR(INT0_vect)
-{
-	_delay_ms(10);
-	if(KEY_UP)
-	{
-		if(current_status_of_pwm_cycle==PWM_MODE_TURN_OFF)
-			current_status_of_pwm_cycle=PWM_MODE_TRIGGER;
-		if(current_status_of_pwm_cycle==PWM_MODE_TURN_ON)
-			if(main_counter<SUSTAIN_TIME-SUSTAIN_EXTENSION_TIME)
-				main_counter += SUSTAIN_EXTENSION_TIME;
-			else
-				main_counter = SUSTAIN_TIME;
-	}
-}
-
-ISR(WDT_vect)
-{
-	light_values[light_values_idx] = adc_read();
-	if(light_values_idx<2*TIME_OF_MEAN)
-		light_values_idx++;
-	else
-		light_values_idx = 0;
-	MCUSR &= ~(1<<WDRF); // Disable reset of microcontroller
-}
-*/
-
 int main(void)
 {
 	DDRB |= HEATER_1 | HEATER_2 | HEATER_3;// setting DDR of PORT B
 	DDRB  &= ~POT;          // set KEY_PIN like input 
 	DDRB  &= ~NTC;              // set LDR like input 
-	PORTB &= ~HEATER_1; 
-	PORTB &= ~HEATER_2; 
-	PORTB &= ~HEATER_3; 
+	turn_off_heater();
 
 	//pwm_setup();
-	//adc_setup();
-	//interuppt_setup();
-	//watchdog_and_mean_setup();
+	adc_setup();
 	
 	//pwm_set_duty(0);
 
@@ -81,36 +60,22 @@ int main(void)
 
 	while(1)
 	{
+		/*
+		// LED on
+		turn_on_heater();
+		_delay_ms(500);                // wait 500 milliseconds
 
+		//LED off
+		turn_off_heater();
+		_delay_ms(500);                // wait 500 milliseconds
+		*/
+
+		check_temp_and_set_heater();
+	 
 	}
 
 
 }
-
-/*
-void watchdog_and_mean_setup(void)
-{
-	int i;
-	// set prescaler to 0.5s and enable Watchdog Timer
-	WDTCR =  (1<<WDTIE) | (1<<WDP0) | (1<<WDP2);
-	// disable reset of microcontroller
-	WDTCR &= ~(1<<WDE);
-	MCUSR &= ~(1<<WDRF);
-	for(i=0;i<2*TIME_OF_MEAN;i++)
-		light_values[i] = 0;
-}
-*/
-
-/*
-void interuppt_setup(void)
-{
-	GIMSK |= (1<<INT0);
-	MCUCR |= (1<<ISC00) | (1<<ISC01); //INT0 rising edge
-	//MCUCR |= (1<<ISC01); //INT0 falling edge
-
-	sei();
-}
-*/
 
 /*
 void pwm_setup(void)
@@ -146,13 +111,43 @@ uint8_t pwm_return_duty(void)
 	return OCR0A;
 }
 */
+void turn_on_heater(void)
+{
+	       PORTB |= HEATER_1;
+	       PORTB |= HEATER_2;
+	       PORTB |= HEATER_3;
+}
 
-/*
+void turn_off_heater(void)
+{
+	       PORTB &=~HEATER_1; 
+	       PORTB &=~HEATER_2; 
+	       PORTB &=~HEATER_3; 
+}
+
+void select_potentiometer_adc_mux(void)
+{
+	// Set the ADC input to PB4/ADC2
+	ADMUX &= ~(1 << MUX0);
+	ADMUX |= (1 << MUX1);
+}
+
+void select_thermistor_adc_mux(void)
+{
+	// Set the ADC input to PB3/ADC3
+	ADMUX |= (1 << MUX0) | (1 << MUX1);
+}
+
 void adc_setup(void)
 {
-	// Set the ADC input to PB2/ADC1
-	ADMUX |= (1 << MUX0) | (1 << MUX1);
+	// Turn on if needed only 8bit and read from ADCH
 	//ADMUX |= (1 << ADLAR);
+	// Set the ADC input to PB3/ADC3
+	//ADMUX |= (1 << MUX0) | (1 << MUX1);
+	// Set the ADC input to PB4/ADC2
+	//ADMUX &= ~(1 << MUX0);
+	//ADMUX |= (1 << MUX1);
+	//select_potentiometer_adc_mux();
 
 	// Set the prescaler to clock/128 & enable ADC
 	ADCSRA |= (1 << ADPS1) | (1 << ADPS0);
@@ -162,9 +157,7 @@ void adc_setup(void)
 	// if you turn off mux, where you use input it won't work
 	//DIDR0 |= (1<<ADC0D) | (1<<ADC2D) | (1<<ADC3D);
 }
-*/
 
-/*
 uint16_t adc_read (void)
 {
 	// Start the conversion
@@ -175,4 +168,30 @@ uint16_t adc_read (void)
 
 	return ADC;
 }
-*/
+
+uint8_t get_idx_of_temp(void)
+{
+	select_potentiometer_adc_mux();
+	return (adc_read()*(NUMBER_OF_TEMP_VALUES-1))/1023;
+}
+
+void check_temp_and_set_heater(void)
+{
+	select_thermistor_adc_mux();
+	uint16_t thermistor_adc_val = adc_read();
+	if (thermistor_adc_val > ERROR_NO_TERMISTOR_ADC_VALUE) 
+	{
+		turn_off_heater();
+	} else
+	{
+		if (thermistor_adc_val > 
+				(temp_values[get_idx_of_temp()]+ADC_VAL_HYSTERESIS))
+		{
+			turn_on_heater();
+		} else if (thermistor_adc_val < 
+				(temp_values[get_idx_of_temp()]-ADC_VAL_HYSTERESIS))
+		{
+			turn_off_heater();
+		}
+	}
+}
